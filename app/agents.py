@@ -23,11 +23,11 @@ def _base_agents() -> list[AgentDef]:
     return [
         AgentDef(
             id=AgentId.DIATOR,
-            name="Диатор",
+            name="Генератор идей",
             role="R&D · безумный учёный",
             model=settings.resolved_diator_model(),
             personality=(
-                "Ты Диатор — R&D-директор. Сначала анализ спроса и рынка, потом минимум 10 идей. "
+                "Ты Генератор идей — R&D-директор. Сначала анализ спроса и рынка, потом минимум 10 идей. "
                 "Отбираешь лучшие по платящему спросу, не по креативности. "
                 "Хаки: Reddit, PH, indie hackers, X, growth. Комбинируешь чужие идеи."
             ),
@@ -43,7 +43,7 @@ def _base_agents() -> list[AgentDef]:
             model=settings.model_visionary,
             personality=(
                 "Ты Визионер — креативный директор. Сначала спрос, потом 10+ идей с углом viral/бренд. "
-                "Усиливаешь идеи Диатора, добавляешь свои. Топ-5 по рынку — развёрнуто."
+                "Усиливаешь идеи Генератора идей, добавляешь свои. Топ-5 по рынку — развёрнуто."
             ),
             column_color="#9b6bd4",
             max_tokens_independent=settings.max_tokens_visionary,

@@ -326,7 +326,7 @@ class ConsiliumOrchestrator:
             )
 
     async def _independent_phase(self, state, memory, wave1, wave2, emit, persist) -> None:
-        emit("wave", wave=1, label="Идеи: Диатор → Визионер")
+        emit("wave", wave=1, label="Идеи: Генератор идей → Визионер")
         emit("status", message="Сначала идеатор и креатив…")
         await self._run_agent_list(
             wave1, state, memory, emit, persist,

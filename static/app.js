@@ -4,7 +4,7 @@ const AGENT_ORDER = ["diator", "visionary", "architect", "critic"];
 const WAVE2_IDS = new Set(["architect", "critic"]);
 let currentWave = 0;
 const ROLE_LABELS = {
-  diator: "Диатор",
+  diator: "Генератор идей",
   visionary: "Визионер",
   architect: "Архитектор",
   critic: "Критик",

@@ -9,3 +9,5 @@ data/*.db
 data/uploads/*
 !data/.gitkeep
 !data/uploads/.gitkeep
+data/probe_log.txt
+data/*_log.txt
