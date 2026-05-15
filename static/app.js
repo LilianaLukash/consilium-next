@@ -160,6 +160,16 @@ function getCouncilPayload() {
   };
 }
 
+/** Для GET /api/agents — без snapshots (иначе URL обрезается и выбор «не работает»). */
+function getCouncilPayloadSlim() {
+  const p = getCouncilPayload();
+  return {
+    price_threshold: p.price_threshold,
+    preset: p.preset,
+    models: p.models,
+  };
+}
+
 async function loadModels() {
   const th = $("priceThreshold")?.value || "10";
   const res = await fetch(`/api/models?price_threshold=${th}`);
@@ -173,9 +183,33 @@ function modelOptionLabel(m) {
   return `${m.id} · in $${m.input_price_per_m} · out $${m.output_price_per_m} · ctx ${m.context_length} · ${tags}`;
 }
 
+function onRoleModelChange(sel) {
+  const role = sel.dataset.role;
+  if (!role) return;
+  councilConfig.models[role] = sel.value;
+  const m = allModels.find((x) => x.id === sel.value);
+  if (m) councilConfig.snapshots[role] = m;
+  else delete councilConfig.snapshots[role];
+  const st = $("statusText");
+  if (st) st.textContent = `${ROLE_LABELS[role] || role}: ${sel.value}`;
+}
+
+function bindRoleModelDelegates() {
+  const root = $("roleModels");
+  if (!root || root.dataset.bound === "1") return;
+  root.dataset.bound = "1";
+  root.addEventListener("change", (e) => {
+    const sel = e.target;
+    if (!sel.matches?.("select[data-role]")) return;
+    onRoleModelChange(sel);
+    loadAgents().catch(() => {});
+  });
+}
+
 function renderRoleDropdowns() {
   const root = $("roleModels");
   if (!root) return;
+  bindRoleModelDelegates();
   const roles = [...AGENT_ORDER, "synthesis"];
   root.innerHTML = roles
     .map((role) => {
@@ -192,15 +226,6 @@ function renderRoleDropdowns() {
       return `<label class="role-model-row"><span>${ROLE_LABELS[role]}</span><select data-role="${role}">${extra}${opts}</select></label>`;
     })
     .join("");
-
-  root.querySelectorAll("select").forEach((sel) => {
-    sel.addEventListener("change", async () => {
-      councilConfig.models[sel.dataset.role] = sel.value;
-      const m = allModels.find((x) => x.id === sel.value);
-      if (m) councilConfig.snapshots[sel.dataset.role] = m;
-      await loadAgents();
-    });
-  });
 }
 
 async function loadEnvCouncilDefaults() {
@@ -253,7 +278,7 @@ async function autoStack() {
 }
 
 async function loadAgents() {
-  const cfg = encodeURIComponent(JSON.stringify(getCouncilPayload()));
+  const cfg = encodeURIComponent(JSON.stringify(getCouncilPayloadSlim()));
   agentsMeta = await (await authFetch(`/api/agents?council=${cfg}`)).json();
   const order = Object.fromEntries(AGENT_ORDER.map((id, i) => [id, i]));
   agentsMeta.sort((a, b) => (order[a.id] ?? 99) - (order[b.id] ?? 99));
@@ -506,7 +531,6 @@ async function runCouncil({ revise = false } = {}) {
 
   if (!revise) {
     $("verdictBody").innerHTML = '<p class="verdict-placeholder">Формируем вывод…</p>';
-    await applyPreset();
     await loadAgents();
     document.querySelectorAll('[id^="col-"]').forEach((el) => (el.innerHTML = ""));
     setWaveUI(0);

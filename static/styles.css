@@ -690,6 +690,12 @@ select:focus {
   gap: 0.5rem;
 }
 
+.role-models-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
 .role-models {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
