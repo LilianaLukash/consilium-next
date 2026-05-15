@@ -194,10 +194,11 @@ function renderRoleDropdowns() {
     .join("");
 
   root.querySelectorAll("select").forEach((sel) => {
-    sel.addEventListener("change", () => {
+    sel.addEventListener("change", async () => {
       councilConfig.models[sel.dataset.role] = sel.value;
       const m = allModels.find((x) => x.id === sel.value);
       if (m) councilConfig.snapshots[sel.dataset.role] = m;
+      await loadAgents();
     });
   });
 }
@@ -623,6 +624,7 @@ $("compareVerdictsBtn")?.addEventListener("click", compareVerdicts);
   initColumnResize();
   await updateAccountBar();
   await loadModels();
+  await loadEnvCouncilDefaults();
   await applyPreset();
   loadSessionsList();
   try {
