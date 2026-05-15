@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     diator_timeout_seconds: float = 180.0
     early_stop_similarity: float = 0.85
 
-    model_diator: str = "x-ai/grok-4.1-fast"
+    model_diator: str = "x-ai/grok-4.3"
     model_architect: str = "anthropic/claude-sonnet-4"
     model_critic: str = "anthropic/claude-sonnet-4"
     model_visionary: str = "nousresearch/hermes-4-70b"

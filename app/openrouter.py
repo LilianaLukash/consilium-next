@@ -66,7 +66,19 @@ class OpenRouterClient:
 
         client = self._get_client()
         resp = await client.post(OPENROUTER_URL, headers=headers, json=body, timeout=req_timeout)
-        resp.raise_for_status()
+        if resp.is_error:
+            detail = resp.text[:500]
+            try:
+                err = resp.json().get("error", {})
+                if isinstance(err, dict) and err.get("message"):
+                    detail = str(err["message"])
+            except Exception:
+                pass
+            raise httpx.HTTPStatusError(
+                f"OpenRouter {resp.status_code}: {detail}",
+                request=resp.request,
+                response=resp,
+            )
         data = resp.json()
 
         choice = data.get("choices", [{}])[0]
