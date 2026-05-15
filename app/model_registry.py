@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -13,8 +14,72 @@ from app.config import settings
 
 MODELS_URL = "https://openrouter.ai/api/v1/models"
 CACHE_TTL = 3600
+_VERIFIED_PATH = Path(__file__).resolve().parent.parent / "data" / "chat_models_verified.json"
+
+# Дороже порога UI, но проверены вручную (chat/completions 200)
+_EXTRA_VERIFIED_CHAT = frozenset(
+    {
+        "anthropic/claude-sonnet-4",
+        "openai/gpt-4o",
+        "openai/gpt-4o-mini",
+    }
+)
+
+# Не chat/completions (audio, image-gen, router-only, …)
+_CHAT_ID_BLOCKLIST = (
+    "lyria",
+    "gpt-audio",
+    "dall-e",
+    "stable-diffusion",
+    "/flux",
+    "embed",
+    "whisper",
+    "moderation",
+    "switchpoint/router",
+    "relace/apply",
+    "spotlight",
+    "virtuoso-large",
+    "coder-large",
+    "maestro-reasoning",
+)
 
 _cache: dict[str, Any] = {"at": 0.0, "models": []}
+_verified_chat_ids: frozenset[str] | None = None
+_verified_loaded: bool = False
+
+
+def _load_verified_chat_ids() -> frozenset[str] | None:
+    """None = не фильтровать (файла нет); иначе только id из probe + extra."""
+    global _verified_chat_ids, _verified_loaded
+    if _verified_loaded:
+        return _verified_chat_ids
+    _verified_loaded = True
+    if not _VERIFIED_PATH.is_file():
+        return None
+    ids: set[str] = set(_EXTRA_VERIFIED_CHAT)
+    try:
+        data = json.loads(_VERIFIED_PATH.read_text(encoding="utf-8"))
+        ids.update(data.get("ok") or [])
+        _verified_chat_ids = frozenset(ids)
+    except (json.JSONDecodeError, OSError):
+        _verified_chat_ids = None
+    return _verified_chat_ids
+
+
+def _raw_is_chat_capable(raw: dict[str, Any]) -> bool:
+    mid = (raw.get("id") or "").lower()
+    if any(b in mid for b in _CHAT_ID_BLOCKLIST):
+        return False
+    arch = raw.get("architecture") or {}
+    modality = (arch.get("modality") or "").lower()
+    out_mod = arch.get("output_modalities") or []
+    outs = [str(x).lower() for x in out_mod] if isinstance(out_mod, list) else []
+    if outs and not any("text" in o for o in outs):
+        return False
+    if modality and "text" not in modality and "->text" not in modality:
+        if not outs or not any("text" in o for o in outs):
+            return False
+    return True
 
 ROLE_KEYS = ("diator", "visionary", "architect", "critic", "synthesis")
 
@@ -61,7 +126,7 @@ class ModelInfo:
             tags.append("reasoning")
         if "grok" in self.id or "owl" in self.id or "hermes" in self.id or "dolphin" in self.id:
             tags.append("creative")
-        if any(x in self.id for x in ("grok-4.1-fast", "grok-4-fast", "grok-3-mini", "flash", "gemini-2.5-flash-lite")):
+        if any(x in self.id for x in ("grok-4.3", "grok-4-fast", "grok-3-mini", "flash", "gemini-2.5-flash-lite")):
             tags.append("fast")
         return tags
 
@@ -116,8 +181,11 @@ def _price_per_m(val: str | float | None) -> float:
 
 def _parse_model(raw: dict[str, Any]) -> ModelInfo | None:
     mid = raw.get("id") or ""
-    if not mid or ":free" in mid and "test" in mid.lower():
-        pass
+    if not mid or not _raw_is_chat_capable(raw):
+        return None
+    verified = _load_verified_chat_ids()
+    if verified is not None and mid not in verified:
+        return None
     name = raw.get("name") or mid
     arch = raw.get("architecture") or {}
     modality = (arch.get("modality") or "").lower()
@@ -214,13 +282,12 @@ def _pick(
     return models[0].id if models else prefer[0]
 
 
-# Grok: grok-4.1-fast (~$0.20/M) — быстрый; grok-3-mini — дешевле; grok-3 — медленный и дорогой.
-# Креатив: hermes-4-70b, mistral-saba, dolphin-venice (free); Sonar — для фактов/рынка, не для 10 идей.
+# Grok 4.3 — актуальный fast; grok-3-mini — дешевле.
 PRESET_STACKS: dict[str, dict[str, list[str]]] = {
     "cheap": {
         "diator": [
             "x-ai/grok-3-mini",
-            "x-ai/grok-4.1-fast",
+            "x-ai/grok-4.3",
             "google/gemini-2.5-flash-lite",
         ],
         "visionary": [
@@ -234,47 +301,46 @@ PRESET_STACKS: dict[str, dict[str, list[str]]] = {
     },
     "balanced": {
         "diator": [
-            "x-ai/grok-4.1-fast",
-            "x-ai/grok-4-fast",
+            "x-ai/grok-4.3",
             "x-ai/grok-3-mini",
             "google/gemini-2.5-flash-lite",
         ],
         "visionary": [
             "nousresearch/hermes-4-70b",
-            "x-ai/grok-4.1-fast",
             "mistralai/mistral-saba",
             "google/gemini-2.5-flash",
+            "x-ai/grok-4.3",
         ],
         "architect": ["anthropic/claude-sonnet-4", "openai/gpt-4o"],
         "critic": ["anthropic/claude-sonnet-4", "openai/gpt-4o"],
         "synthesis": ["google/gemini-2.5-pro-preview", "anthropic/claude-sonnet-4"],
     },
     "creative": {
-        "diator": ["x-ai/grok-4.1-fast", "x-ai/grok-3-mini"],
+        "diator": ["x-ai/grok-4.3", "x-ai/grok-3-mini"],
         "visionary": [
             "nousresearch/hermes-4-70b",
             "openrouter/owl-alpha",
             "mistralai/mistral-saba",
-            "x-ai/grok-4.1-fast",
+            "x-ai/grok-4.3",
         ],
         "architect": ["anthropic/claude-sonnet-4", "openai/gpt-4o"],
         "critic": ["anthropic/claude-sonnet-4"],
-        "synthesis": ["google/gemini-2.5-pro-preview", "x-ai/grok-4.1-fast"],
+        "synthesis": ["google/gemini-2.5-pro-preview", "x-ai/grok-4.3"],
     },
     "analyst": {
         "diator": [
-            "x-ai/grok-4.1-fast",
+            "x-ai/grok-4.3",
             "perplexity/sonar",
             "google/gemini-2.5-flash-lite",
         ],
         "visionary": ["nousresearch/hermes-4-70b", "anthropic/claude-sonnet-4"],
         "architect": ["anthropic/claude-sonnet-4", "openai/gpt-4o"],
-        "critic": ["anthropic/claude-sonnet-4", "openai/o3-mini"],
+        "critic": ["anthropic/claude-sonnet-4", "openai/gpt-4o-mini"],
         "synthesis": ["anthropic/claude-sonnet-4", "google/gemini-2.5-pro-preview"],
     },
     "startup_war_room": {
-        "diator": ["x-ai/grok-4.1-fast", "x-ai/grok-3-mini"],
-        "visionary": ["nousresearch/hermes-4-70b", "x-ai/grok-4.1-fast"],
+        "diator": ["x-ai/grok-4.3", "x-ai/grok-3-mini"],
+        "visionary": ["nousresearch/hermes-4-70b", "x-ai/grok-4.3"],
         "architect": ["anthropic/claude-sonnet-4"],
         "critic": ["anthropic/claude-sonnet-4"],
         "synthesis": ["google/gemini-2.5-pro-preview"],
@@ -339,8 +405,7 @@ def auto_select_stack(
     result["diator"] = _pick(
         filtered,
         prefer=[
-            "x-ai/grok-4.1-fast",
-            "x-ai/grok-4-fast",
+            "x-ai/grok-4.3",
             "x-ai/grok-3-mini",
             "google/gemini-2.5-flash-lite",
         ],
@@ -351,7 +416,7 @@ def auto_select_stack(
         prefer=[
             "nousresearch/hermes-4-70b",
             "mistralai/mistral-saba",
-            "x-ai/grok-4.1-fast",
+            "x-ai/grok-4.3",
             "google/gemini-2.5-flash",
         ],
         tag="creative",

@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 COPY static ./static
+COPY data/chat_models_verified.json ./data/chat_models_verified.json
 
 RUN mkdir -p data/uploads
 
