@@ -1,0 +1,9 @@
+# https://railway.app — подключите репозиторий и смонтируйте Volume на /app/data
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120

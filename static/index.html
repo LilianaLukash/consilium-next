@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a0a0c" />
+  <title>Consilium — AI War Room</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=3" />
+  <link rel="stylesheet" href="/static/auth.css?v=1" />
+</head>
+<body class="app">
+  <div class="app-bg" aria-hidden="true"></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <img src="/static/logo.svg" alt="" class="logo-mark" width="44" height="44" />
+        <div class="brand-text">
+          <span class="brand-name">CONSILIUM</span>
+          <span class="brand-tag">AI War Room · топ-3 · русский</span>
+        </div>
+      </a>
+      <div class="account-bar" id="accountBar">
+        <span id="accountBalance" class="account-balance hidden"></span>
+        <span id="accountGuestHint" class="account-guest-hint hidden"></span>
+        <button type="button" id="sidebarToggleTop" class="btn btn-ghost btn-history" aria-expanded="false" aria-controls="sidebar">
+          История
+        </button>
+        <a href="/account.html" id="accountLink" class="btn btn-ghost hidden">Кошелёк</a>
+        <a href="/auth.html" id="authLink" class="btn btn-secondary">Войти</a>
+      </div>
+      <nav class="phase-track" id="phaseBar" aria-label="Этапы совета">
+        <span class="phase-pill" data-phase="idle">Старт</span>
+        <span class="phase-connector" aria-hidden="true"></span>
+        <span class="phase-pill" data-phase="independent">Вклад</span>
+        <span class="phase-connector" aria-hidden="true"></span>
+        <span class="phase-pill" data-phase="debate">Дебаты</span>
+        <span class="phase-connector" aria-hidden="true"></span>
+        <span class="phase-pill" data-phase="review">Пересмотр</span>
+        <span class="phase-connector" aria-hidden="true"></span>
+        <span class="phase-pill" data-phase="synthesis">Вердикт</span>
+      </nav>
+    </header>
+
+    <div class="app-body sidebar-collapsed" id="appBody">
+      <aside class="sidebar" id="sidebar" aria-label="История сессий">
+        <div class="sidebar-head">
+          <h2>Сессии</h2>
+          <button type="button" id="sidebarClose" class="sidebar-close" aria-label="Скрыть панель">×</button>
+        </div>
+        <ul id="sessionsList" class="sessions-list"></ul>
+        <button type="button" id="compareVerdictsBtn" class="btn btn-ghost btn-block hidden">Сравнить версии</button>
+        <pre id="compareBox" class="compare-box hidden"></pre>
+      </aside>
+      <button type="button" id="sidebarOpen" class="sidebar-open-tab" aria-label="Показать историю сессий">
+        <span class="sidebar-open-icon" aria-hidden="true">☰</span>
+        <span class="sidebar-open-label">История</span>
+      </button>
+
+      <main class="main">
+        <section class="panel mission-panel">
+          <div class="panel-head">
+            <h2 class="panel-title">Миссия</h2>
+            <p class="panel-desc">Сформулируйте цель — совет разберёт рынок, идеи и выдаст топ-3.</p>
+          </div>
+          <label class="field-label" for="prompt">Цель / задача</label>
+          <textarea id="prompt" rows="4" placeholder="Например: $100k за 6 месяцев из Лиссабона, бюджет $2k, максимум автоматизации…"></textarea>
+          <label class="field-label file-label" for="fileInput">Вложения</label>
+          <div class="file-row">
+            <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md,.csv,.json,.png,.jpg,.jpeg,.webp,.gif" />
+            <span class="field-hint">PDF, текст, изображения</span>
+          </div>
+          <div class="mission-actions">
+            <label class="rounds-control">
+              <span class="field-label">Раунды дебатов</span>
+              <input type="number" id="maxRounds" min="1" max="5" value="2" />
+            </label>
+            <button type="button" id="runBtn" class="btn btn-primary btn-lg">
+              <span class="btn-glow" aria-hidden="true"></span>
+              Запустить совет
+            </button>
+            <div class="status-wrap">
+              <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+              <span id="statusText" class="status-text">Готов к запуску</span>
+            </div>
+          </div>
+          <div id="errorBanner" class="error-banner hidden" role="alert"></div>
+        </section>
+
+        <details class="panel settings-panel" id="settingsPanel">
+          <summary class="settings-summary">
+            <span>Настройки совета</span>
+            <span class="settings-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="settings-inner">
+            <div class="settings-row">
+              <label class="field-block">
+                <span class="field-label">Порог цены ($/1M input)</span>
+                <input type="number" id="priceThreshold" min="0" step="0.5" value="10" />
+              </label>
+              <label class="field-block">
+                <span class="field-label">Пресет</span>
+                <select id="presetSelect">
+                  <option value="cheap">Economy</option>
+                  <option value="balanced" selected>Balanced</option>
+                  <option value="creative">Creative</option>
+                  <option value="analyst">Analyst</option>
+                  <option value="startup_war_room">War Room</option>
+                </select>
+              </label>
+              <div class="settings-btns">
+                <button type="button" id="applyPresetBtn" class="btn btn-secondary">Применить</button>
+                <button type="button" id="autoStackBtn" class="btn btn-secondary">Auto stack</button>
+              </div>
+            </div>
+            <div class="role-models" id="roleModels"></div>
+          </div>
+        </details>
+
+        <section class="panel board-panel">
+          <div class="board-toolbar">
+            <h2 class="panel-title">Совет</h2>
+            <p class="column-resize-hint">Потяните правый край колонки для ширины</p>
+          </div>
+          <div class="board-scroll">
+            <div class="board">
+              <div class="columns agents-columns" id="agentColumns"></div>
+              <article class="column verdict-column">
+                <header class="column-header verdict-header">
+                  <div class="column-title-row">
+                    <span class="role-icon verdict-icon" aria-hidden="true">◆</span>
+                    <div>
+                      <h3>Вердикт</h3>
+                      <p class="role">Топ-3 · таблицы · рекомендация</p>
+                    </div>
+                  </div>
+                </header>
+                <div class="column-body" id="verdictBody">
+                  <p class="verdict-placeholder">Итог совета появится здесь после синтеза…</p>
+                </div>
+                <section class="revise-box hidden" id="reviseBox">
+                  <label class="field-label" for="userComment">Комментарий к выводу</label>
+                  <textarea id="userComment" rows="3" placeholder="Уточните, что пересмотреть…"></textarea>
+                  <button type="button" id="reviseBtn" class="btn btn-secondary btn-block">Новый раунд с комментарием</button>
+                </section>
+              </article>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="paymentToast" class="hidden" role="status"></div>
+  <script src="/static/app.js?v=14" type="module"></script>
+</body>
+</html>

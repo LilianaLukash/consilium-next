@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Consilium — Вход</title>
+  <link rel="stylesheet" href="/static/styles.css?v=3" />
+  <link rel="stylesheet" href="/static/auth.css?v=1" />
+</head>
+<body class="app auth-page">
+  <div class="app-bg" aria-hidden="true"></div>
+  <main class="auth-card panel">
+    <a href="/" class="brand auth-brand">
+      <img src="/static/logo.svg" alt="" width="40" height="40" />
+      <span class="brand-name">CONSILIUM</span>
+    </a>
+    <p class="auth-lead">Войдите, чтобы продолжить после бесплатной пробы.</p>
+
+    <div id="authMessage" class="auth-message hidden"></div>
+
+    <form id="loginForm" class="auth-form">
+      <h2>Вход</h2>
+      <label class="field-label" for="loginEmail">Email</label>
+      <input type="email" id="loginEmail" required autocomplete="email" />
+      <label class="field-label" for="loginPassword">Пароль</label>
+      <input type="password" id="loginPassword" required autocomplete="current-password" />
+      <button type="submit" class="btn btn-primary btn-block">Войти</button>
+    </form>
+
+    <form id="registerForm" class="auth-form hidden">
+      <h2>Регистрация</h2>
+      <label class="field-label" for="regEmail">Email</label>
+      <input type="email" id="regEmail" required autocomplete="email" />
+      <label class="field-label" for="regPassword">Пароль (мин. 8)</label>
+      <input type="password" id="regPassword" required minlength="8" autocomplete="new-password" />
+      <button type="submit" class="btn btn-primary btn-block">Создать аккаунт</button>
+    </form>
+
+    <form id="resetForm" class="auth-form hidden">
+      <h2>Сброс пароля</h2>
+      <label class="field-label" for="resetPassword">Новый пароль</label>
+      <input type="password" id="resetPassword" required minlength="8" />
+      <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
+    </form>
+
+    <div class="auth-actions">
+      <button type="button" id="showRegister" class="btn btn-ghost">Регистрация</button>
+      <button type="button" id="showLogin" class="btn btn-ghost hidden">Вход</button>
+      <a href="/api/auth/google/start" class="btn btn-secondary">Google</a>
+      <a href="/" class="btn btn-ghost">На главную</a>
+    </div>
+  </main>
+  <script type="module" src="/static/auth-page.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Consilium — Аккаунт</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=3" />
+  <link rel="stylesheet" href="/static/auth.css?v=2" />
+</head>
+<body class="app auth-page">
+  <div class="app-bg" aria-hidden="true"></div>
+  <main class="account-layout">
+    <header class="account-top">
+      <a href="/" class="brand auth-brand">
+        <img src="/static/logo.svg" alt="" width="36" height="36" />
+        <span class="brand-name">CONSILIUM</span>
+      </a>
+      <a href="/" class="btn btn-ghost">← Совет</a>
+    </header>
+
+    <section class="panel account-section">
+      <h1 class="panel-title">Баланс</h1>
+      <p id="accountBalanceBig" class="balance-big">—</p>
+      <div id="topupBlock" class="topup-block">
+        <p class="field-label">Пополнить (Stripe)</p>
+        <div class="topup-buttons">
+          <button type="button" class="btn btn-secondary topup-amt" data-amt="5">$5</button>
+          <button type="button" class="btn btn-secondary topup-amt" data-amt="10">$10</button>
+          <button type="button" class="btn btn-secondary topup-amt" data-amt="25">$25</button>
+          <button type="button" class="btn btn-secondary topup-amt" data-amt="50">$50</button>
+        </div>
+        <p id="topupStatus" class="field-hint"></p>
+      </div>
+    </section>
+
+    <section class="panel account-section">
+      <h2 class="panel-title">Транзакции</h2>
+      <div id="txTable" class="data-table-wrap">Загрузка…</div>
+    </section>
+
+    <section class="panel account-section">
+      <h2 class="panel-title">Расход AI</h2>
+      <p class="field-hint">Списания = OpenRouter × 1.4</p>
+      <div id="usageTable" class="data-table-wrap">Загрузка…</div>
+    </section>
+  </main>
+  <script type="module" src="/static/account.js?v=1"></script>
+</body>
+</html>
