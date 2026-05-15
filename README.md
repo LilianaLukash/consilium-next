@@ -1,21 +1,94 @@
-# Consilium-Next
+# Consilium
 
-Мульти-агентный «совет» с auth, гостевой пробой, биллингом (OpenRouter × 1.4) и Stripe.
+**Consilium** — веб-приложение «совет экспертов»: несколько LLM через [OpenRouter](https://openrouter.ai/) проходят волны анализа и дебатов, затем **один общий вердикт** (топ‑3 на русском). Есть **гостевая проба**, **регистрация** (email + Google), **баланс** и опционально **Stripe**.
 
-Стабильная копия без auth — в репозитории [consilium](../) (локально `../`).
+Репозиторий: [github.com/LilianaLukash/consilium-next](https://github.com/LilianaLukash/consilium-next)
 
-## Локально
+## Роли в совете
+
+Внутренние id в коде/API остаются на английском; в UI показаны русские имена.
+
+| Внутренний id | В интерфейсе | Задача |
+|-----------------|--------------|--------|
+| `diator` | **Генератор идей** | Рынок, много идей, отбор по спросу |
+| `visionary` | **Визионер** | Креатив, бренд, viral-угол |
+| `architect` | **Архитектор** | Как воплотить |
+| `critic` | **Критик** | Риски и контраргументы |
+| *(синтез)* | **Вердикт** | Итоговый текст (отдельная модель синтеза) |
+
+Поток: волна 1 (идеи) → волна 2 (архитектор + критик) → дебаты → синтез.
+
+## Стек
+
+- **Backend:** Python 3.12+, FastAPI, SQLite (`data/consilium.db`), JWT + refresh, bcrypt  
+- **LLM:** OpenRouter (chat completions)  
+- **Биллинг:** списание с баланса ≈ **стоимость OpenRouter × 1.4** (настройка `BILLING_MARKUP_MULTIPLIER`)  
+- **Оплата (опционально):** Stripe Checkout + webhook  
+- **Frontend:** статика в `static/` (без отдельного Node-сборщика)
+
+## Быстрый старт
 
 ```powershell
+git clone https://github.com/LilianaLukash/consilium-next.git
 cd consilium-next
+copy .env.example .env
+# Вставьте OPENROUTER_API_KEY в .env
 .\run.ps1
 ```
 
-- UI: http://127.0.0.1:8001  
+- Главная: http://127.0.0.1:8001  
 - Вход: http://127.0.0.1:8001/auth.html  
-- Аккаунт: http://127.0.0.1:8001/account.html  
+- Аккаунт / баланс: http://127.0.0.1:8001/account.html  
 
-Скопируйте `.env.example` → `.env`, вставьте `OPENROUTER_API_KEY`.
+Без OpenRouter ключ совета не запустится (`503` на `/api/run/stream`).
+
+### Минимальный `.env` для первого запуска
+
+См. полный список в [`.env.example`](.env.example). Обязательно:
+
+| Переменная | Описание |
+|------------|----------|
+| `OPENROUTER_API_KEY` | Ключ [OpenRouter](https://openrouter.ai/keys) |
+| `OPENROUTER_APP_URL` | URL приложения (локально `http://127.0.0.1:8001`) |
+| `APP_PUBLIC_URL` | Обычно то же |
+| `JWT_SECRET` | В dev можно короткий; в **production** ≥ 32 символов |
+
+Для продакшена дополнительно: `ENVIRONMENT=production`, `MASTER_MODE=false`, нормальный `JWT_SECRET`.
+
+## Режимы пользователя
+
+| Режим | Поведение |
+|--------|-----------|
+| **Guest** | `GUEST_FREE_RUNS` бесплатных запусков (по умолчанию 1), дальше нужна регистрация |
+| **User** | Баланс, списание за вызовы моделей; вход после подтверждения email |
+| **Master** | Только `MASTER_MODE=true` **и** `ENVIRONMENT` не production **и** запрос с localhost — без лимитов |
+
+## Модели в UI
+
+Список в выпадающих списках строится из OpenRouter, но **фильтруется** по файлу [`data/chat_models_verified.json`](data/chat_models_verified.json) — туда попадают id, которые прошли короткий тест `chat/completions` (чтобы не показывать аудио/image-only модели вроде Lyria). Обновить список:
+
+```powershell
+.\.venv\Scripts\python scripts\probe_chat_models.py
+```
+
+Префикс роли «Диатор» в env: `MODEL_DIATOR` — это **Генератор идей** (внутренний id `diator`).
+
+## API и документация OpenAPI
+
+После запуска сервера:
+
+- **Swagger UI:** http://127.0.0.1:8001/docs  
+- **ReDoc:** http://127.0.0.1:8001/redoc  
+- **Health:** `GET /api/health`
+
+Кратко по зонам:
+
+- **Auth:** `/api/auth/register`, `login`, `refresh`, `logout`, `me`, Google OAuth, сброс пароля  
+- **Billing:** `/api/billing/balance`, `usage`, `transactions`, `stripe/checkout`, `stripe/webhook`  
+- **Совет:** `POST /api/run/stream` (multipart: `prompt`, `council_config`, файлы), ответ **SSE**  
+- **Сессии:** `/api/sessions`, загрузка и ревизии — с проверкой владельца  
+
+Типичные коды ответов: `401` (нужен вход), `402` (мало баланса), `403` (email не подтверждён / нет доступа к сессии).
 
 ## Тесты
 
@@ -24,40 +97,26 @@ pip install -r requirements.txt
 python -m pytest tests -q
 ```
 
-## Деплой (проще всего — Railway)
+## Деплой (Railway)
 
-**Почему Railway:** один клик из GitHub, Docker уже есть, **Volume** для SQLite (`data/`), не нужен отдельный Postgres на старте.
+Коротко: подключить репозиторий, **Volume** на `/app/data`, в **Variables** — те же ключи, что в `.env.example`, с публичным URL.
 
-| Платформа | Плюсы | Минусы |
-|-----------|--------|--------|
-| **[Railway](https://railway.app)** | GitHub → Deploy, volume, env в UI | ~$5/мес после trial |
-| [Render](https://render.com) | Похожий UI | Persistent disk только на платных планах |
-| Fly.io | Быстро, volume | Нужен CLI `flyctl` |
-| VPS | Полный контроль | Настройка nginx, SSL, бэкапы сами |
+| Переменная | production |
+|------------|------------|
+| `ENVIRONMENT` | `production` |
+| `MASTER_MODE` | `false` |
+| `OPENROUTER_API_KEY` | обязательно |
+| `JWT_SECRET` | ≥ 32 символов, случайная строка |
+| `OPENROUTER_APP_URL` / `APP_PUBLIC_URL` | `https://ваш-домен...` |
+| `GOOGLE_REDIRECT_URI` | `https://ваш-домен.../api/auth/google/callback` |
+| Stripe | если включены платежи: `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` |
 
-### Railway — по шагам
+1. [railway.app](https://railway.app) → **Deploy from GitHub**  
+2. **Settings → Networking → Generate Domain**  
+3. **Volume** → mount path `/app/data`  
+4. Stripe webhook: `POST .../api/billing/stripe/webhook`, событие `checkout.session.completed`
 
-1. Запушьте этот репозиторий на GitHub (см. ниже).
-2. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub** → выберите `consilium-next`.
-3. **Variables** (Settings → Variables):
-
-   | Переменная | Значение |
-   |------------|----------|
-   | `ENVIRONMENT` | `production` |
-   | `MASTER_MODE` | `false` |
-   | `OPENROUTER_API_KEY` | ваш ключ |
-   | `OPENROUTER_APP_URL` | `https://ВАШ-домен.up.railway.app` |
-   | `APP_PUBLIC_URL` | тот же URL |
-   | `JWT_SECRET` | `openssl rand -hex 32` |
-   | `GOOGLE_CLIENT_ID` / `SECRET` | при OAuth |
-   | `GOOGLE_REDIRECT_URI` | `https://ВАШ-домен.../api/auth/google/callback` |
-   | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | при оплате |
-
-4. **Volume** → Mount path: `/app/data` (иначе SQLite и загрузки пропадут при рестарте).
-5. **Stripe webhook:** URL `https://ВАШ-домен/api/billing/stripe/webhook`, событие `checkout.session.completed`.
-6. **Networking** → сгенерировать домен → проверить `https://.../api/health`.
-
-`PORT` Railway подставляет сам; Dockerfile уже слушает `0.0.0.0`.
+Сборка: Dockerfile в корне репозитория.
 
 ### Docker локально
 
@@ -66,21 +125,29 @@ docker build -t consilium-next .
 docker run -p 8001:8000 --env-file .env -v consilium-data:/app/data consilium-next
 ```
 
-## GitHub
+## Типичные проблемы
 
-```powershell
-cd consilium-next
-git add .
-git commit -m "Consilium-Next: auth, billing, security, tests"
-git branch -M main
-git remote add origin https://github.com/ВАШ_ЛОГИН/consilium-next.git
-git push -u origin main
+| Симптом | Что проверить |
+|---------|----------------|
+| **404** от OpenRouter на модель | Slug устарел; см. актуальные id на [openrouter.ai/models](https://openrouter.ai/models) и `MODEL_DIATOR` и др. |
+| **502** Provider returned error | Часто неподходящая модель (например не текстовый chat) или перегрузка провайдера; смените модель в UI |
+| После деплоя нет сессий / баланса | Нет Volume на `/app/data` — SQLite эфемерный |
+| Google login не работает | `GOOGLE_REDIRECT_URI` должен совпадать с OAuth-консолью и с `APP_PUBLIC_URL` |
+| Регистрация без письма | В dev ссылки могут быть в логах сервера; для прода настройте SMTP в `.env` |
+
+## Структура репозитория
+
+```
+consilium-next/
+  app/           # FastAPI: auth, billing, orchestrator, OpenRouter client
+  static/        # UI (HTML/JS/CSS)
+  data/          # SQLite + verified models list (в git — json, db нет)
+  tests/         # pytest
+  scripts/       # утилиты (probe моделей и др.)
 ```
 
-Не коммитьте `.env` — он в `.gitignore`.
+Файл `.env` в git не коммитится.
 
-## API (кратко)
+## Лицензия
 
-- Auth: `/api/auth/register`, `login`, `refresh`, `me`, Google OAuth  
-- Billing: `/api/billing/balance`, `stripe/checkout`, `stripe/webhook`  
-- Совет: `POST /api/run/stream` (multipart), SSE  
+Лицензия не указана — при использовании кода уточните у владельца репозитория.
