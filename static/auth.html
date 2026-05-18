@@ -4,8 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Consilium — Вход</title>
-  <link rel="stylesheet" href="/static/styles.css?v=4" />
-  <link rel="stylesheet" href="/static/auth.css?v=3" />
+  <link rel="stylesheet" href="/static/styles.css?v=5" />
+  <link rel="stylesheet" href="/static/auth.css?v=4" />
+  <style>
+    /* Critical: поля email/password видны даже при устаревшем кэше styles.css */
+    .auth-page .auth-form .field-label {
+      display: block;
+      color: #d4d4d8;
+    }
+    .auth-page .auth-form input[type="email"],
+    .auth-page .auth-form input[type="password"] {
+      display: block !important;
+      width: 100% !important;
+      min-height: 46px !important;
+      margin: 0 0 1rem !important;
+      padding: 0.75rem 1rem !important;
+      border: 2px solid #52525b !important;
+      border-radius: 8px !important;
+      background: #27272a !important;
+      color: #fafafa !important;
+      font-size: 1rem !important;
+    }
+  </style>
 </head>
 <body class="app auth-page">
   <div class="app-bg" aria-hidden="true"></div>
