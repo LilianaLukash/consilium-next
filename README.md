@@ -140,7 +140,35 @@ docker run -p 8001:8000 --env-file .env -v consilium-data:/app/data consilium-ne
 | **404** от OpenRouter на модель | Slug устарел; см. актуальные id на [openrouter.ai/models](https://openrouter.ai/models) и `MODEL_DIATOR` и др. |
 | **502** Provider returned error | Часто неподходящая модель (например не текстовый chat) или перегрузка провайдера; смените модель в UI |
 | После деплоя нет сессий / баланса | Нет Volume на `/app/data` — SQLite эфемерный |
-| Google login не работает | `GOOGLE_REDIRECT_URI` должен совпадать с OAuth-консолью и с `APP_PUBLIC_URL` |
+| **Google OAuth не настроен** | В Railway пустые `GOOGLE_CLIENT_ID` / `SECRET` — см. раздел ниже |
+| Google login не работает | `GOOGLE_REDIRECT_URI` должен **точно** совпадать с URI в Google Cloud Console |
+
+### Google OAuth (вход через Google)
+
+Сообщение `{"detail":"Google OAuth не настроен"}` значит: на сервере **не задан** `GOOGLE_CLIENT_ID` (или оба id и secret).
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → проект → **APIs & Services** → **Credentials** → **Create credentials** → **OAuth client ID** → тип **Web application**.
+2. **Authorized redirect URIs** (обязательно, без слэша в конце):
+
+   ```
+   https://consilium-next-production.up.railway.app/api/auth/google/callback
+   ```
+
+   Замените домен на ваш Railway-домен, если другой.
+
+3. В **Railway → Variables** добавьте:
+
+   | Переменная | Значение |
+   |------------|----------|
+   | `GOOGLE_CLIENT_ID` | `....apps.googleusercontent.com` |
+   | `GOOGLE_CLIENT_SECRET` | секрет из Google |
+   | `GOOGLE_REDIRECT_URI` | тот же callback URL, что в п.2 |
+
+4. Перезапуск деплоя → проверка: `GET https://ваш-домен/api/health` → `"google_oauth_configured": true`.
+
+5. Кнопка **Google** на `/auth.html` появится только когда `google_oauth_configured` true.
+
+Пока переменных нет — используйте **email + пароль** (регистрация на `/auth.html`).
 | Регистрация без письма | В dev ссылки могут быть в логах сервера; для прода настройте SMTP в `.env` |
 
 ## Структура репозитория

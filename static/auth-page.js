@@ -38,6 +38,17 @@ if (params.get("verify")) {
   showForm("login");
 }
 
+(async () => {
+  try {
+    const h = await (await fetch("/api/health")).json();
+    if (h.google_oauth_configured) {
+      $("googleLoginBtn")?.classList.remove("hidden");
+    }
+  } catch {
+    /* ignore */
+  }
+})();
+
 $("showRegister")?.addEventListener("click", () => showForm("register"));
 $("showLogin")?.addEventListener("click", () => showForm("login"));
 
