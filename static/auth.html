@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Consilium — Вход</title>
-  <link rel="stylesheet" href="/static/styles.css?v=3" />
-  <link rel="stylesheet" href="/static/auth.css?v=1" />
+  <link rel="stylesheet" href="/static/styles.css?v=4" />
+  <link rel="stylesheet" href="/static/auth.css?v=3" />
 </head>
 <body class="app auth-page">
   <div class="app-bg" aria-hidden="true"></div>
@@ -21,18 +21,18 @@
     <form id="loginForm" class="auth-form">
       <h2>Вход</h2>
       <label class="field-label" for="loginEmail">Email</label>
-      <input type="email" id="loginEmail" required autocomplete="email" />
+      <input type="email" id="loginEmail" required autocomplete="email" placeholder="you@example.com" />
       <label class="field-label" for="loginPassword">Пароль</label>
-      <input type="password" id="loginPassword" required autocomplete="current-password" />
+      <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="••••••••" />
       <button type="submit" class="btn btn-primary btn-block">Войти</button>
     </form>
 
     <form id="registerForm" class="auth-form hidden">
       <h2>Регистрация</h2>
       <label class="field-label" for="regEmail">Email</label>
-      <input type="email" id="regEmail" required autocomplete="email" />
-      <label class="field-label" for="regPassword">Пароль (мин. 8)</label>
-      <input type="password" id="regPassword" required minlength="8" autocomplete="new-password" />
+      <input type="email" id="regEmail" required autocomplete="email" placeholder="you@example.com" />
+      <label class="field-label" for="regPassword">Пароль (мин. 8, буквы и цифры)</label>
+      <input type="password" id="regPassword" required minlength="8" autocomplete="new-password" placeholder="минимум 8 символов" />
       <button type="submit" class="btn btn-primary btn-block">Создать аккаунт</button>
     </form>
 

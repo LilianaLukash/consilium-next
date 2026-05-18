@@ -28,10 +28,42 @@
   font-size: 1.2rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--text);
 }
 
-.auth-form input {
+.auth-form .field-label {
+  color: var(--text-secondary);
+}
+
+.auth-form input[type="email"],
+.auth-form input[type="password"],
+.auth-form input[type="text"] {
+  display: block;
+  width: 100%;
   margin-bottom: 0.85rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.auth-form input::placeholder {
+  color: var(--text-muted);
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.auth-card.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
 }
 
 .auth-actions {
